@@ -14,7 +14,7 @@ from src.arxiv_fetcher import POPULAR_CATEGORIES
 # Page configuration
 st.set_page_config(
     page_title="arXiv RAG",
-    page_icon="📚",
+    page_icon="books",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -230,14 +230,14 @@ def check_services():
 def render_sidebar():
     """Render the sidebar with navigation and settings."""
     with st.sidebar:
-        st.markdown('<p class="main-header" style="font-size: 1.8rem;">📚 arXiv RAG</p>', unsafe_allow_html=True)
+        st.markdown('<p class="main-header" style="font-size: 1.8rem;">arXiv RAG</p>', unsafe_allow_html=True)
         st.markdown('<p class="sub-header" style="font-size: 0.9rem; margin-bottom: 1rem;">Research Paper Intelligence</p>', unsafe_allow_html=True)
         
         st.divider()
         
         page = st.radio(
             "Navigation",
-            ["🔍 Query Papers", "📥 Ingest Papers", "📊 Database Stats"],
+            ["Query Papers", "Ingest Papers", "Database Stats"],
             label_visibility="collapsed",
         )
         
@@ -263,10 +263,10 @@ def render_query_page():
         paper_count = 0
         
     if paper_count == 0:
-        st.warning("⚠️ No papers in the database yet. Go to 'Ingest Papers' to add some papers first.")
+        st.warning("No papers in the database yet. Go to 'Ingest Papers' to add some papers first.")
         return
         
-    st.info(f"📚 {paper_count} papers indexed and ready for querying")
+    st.info(f"{paper_count} papers indexed and ready for querying")
     
     # Query input
     query = st.text_area(
@@ -279,7 +279,7 @@ def render_query_page():
     with col1:
         top_k = st.number_input("Sources", min_value=1, max_value=10, value=5)
     with col2:
-        search_button = st.button("🔍 Search & Answer", use_container_width=True)
+        search_button = st.button("Search & Answer", use_container_width=True)
         
     if search_button and query:
         with st.spinner("Searching relevant papers..."):
@@ -291,7 +291,7 @@ def render_query_page():
             return
             
         # Show sources first
-        with st.expander("📖 Retrieved Sources", expanded=True):
+        with st.expander("Retrieved Sources", expanded=True):
             for paper in papers:
                 similarity_pct = paper.get("similarity", 0) * 100
                 st.markdown(f"""
@@ -309,7 +309,7 @@ def render_query_page():
         with st.spinner("Generating answer..."):
             result = rag.query(query, top_k)
             
-        st.markdown("### 💡 Answer")
+        st.markdown("### Answer")
         st.markdown(f"""
         <div class="answer-box">
             {result['answer']}
@@ -327,7 +327,7 @@ def render_ingest_page():
     st.markdown('<h1 class="main-header">Ingest Papers</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Fetch and index papers from arXiv into your knowledge base</p>', unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["🔍 Search Query", "📁 By Category"])
+    tab1, tab2 = st.tabs(["Search Query", "By Category"])
     
     with tab1:
         st.markdown("### Search arXiv")
@@ -337,7 +337,7 @@ def render_ingest_page():
         )
         max_papers_search = st.slider("Maximum papers to fetch", 10, 200, 50)
         
-        if st.button("🚀 Fetch & Index", key="search_ingest"):
+        if st.button("Fetch & Index", key="search_ingest"):
             if search_query:
                 progress_bar = st.progress(0)
                 status_text = st.empty()
@@ -357,7 +357,7 @@ def render_ingest_page():
                 status_text.empty()
                 
                 st.success(f"""
-                ✅ Ingestion complete!
+                Ingestion complete!
                 - Fetched: {stats['fetched']} papers
                 - New papers indexed: {stats['ingested']}
                 - Already existed: {stats['skipped']}
@@ -375,7 +375,7 @@ def render_ingest_page():
         )
         max_papers_cat = st.slider("Maximum papers to fetch", 10, 200, 50, key="cat_slider")
         
-        if st.button("🚀 Fetch & Index", key="cat_ingest"):
+        if st.button("Fetch & Index", key="cat_ingest"):
             progress_bar = st.progress(0)
             status_text = st.empty()
             
@@ -394,7 +394,7 @@ def render_ingest_page():
             status_text.empty()
             
             st.success(f"""
-            ✅ Ingestion complete!
+            Ingestion complete!
             - Fetched: {stats['fetched']} papers
             - New papers indexed: {stats['ingested']}
             - Already existed: {stats['skipped']}
@@ -442,7 +442,7 @@ def render_stats_page():
     st.divider()
     
     # Recent papers
-    st.markdown("### 📄 Recent Papers")
+    st.markdown("### Recent Papers")
     
     if paper_count > 0:
         papers = db.get_all_papers(limit=20)
@@ -477,7 +477,7 @@ def main():
             issues = check_services()
             
         if issues:
-            st.error("⚠️ Service Issues Detected")
+            st.error("Service Issues Detected")
             for issue in issues:
                 st.error(f"• {issue}")
             st.info("""
@@ -495,11 +495,11 @@ def main():
     page = render_sidebar()
     
     # Render selected page
-    if page == "🔍 Query Papers":
+    if page == "Query Papers":
         render_query_page()
-    elif page == "📥 Ingest Papers":
+    elif page == "Ingest Papers":
         render_ingest_page()
-    elif page == "📊 Database Stats":
+    else:
         render_stats_page()
 
 

@@ -14,21 +14,21 @@ A Retrieval-Augmented Generation (RAG) application for searching and querying ar
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   arXiv     │────▶│   Ollama    │────▶│  PostgreSQL │
-│   API       │     │ (Embeddings)│     │  + pgvector │
+│   arXiv     │────▶│ nomic-embed-│────▶│ PostgreSQL +│
+│   API       │     │    text     │     │ pgvector db │
 └─────────────┘     └─────────────┘     └─────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │   Ollama    │
-                    │    (LLM)    │
-                    └─────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │  Streamlit  │
-                    │     UI      │
-                    └─────────────┘
+                                               │
+                                               ▼
+                  ┌─────────────┐       ┌─────────────┐                     
+                  │    User     │ ────▶ │  Llama 3.2  │ 
+                  │    Query    │       │     (3B)    │
+                  └─────────────┘       └─────────────┘              
+                                               │
+                                               ▼
+                                        ┌─────────────┐
+                                        │  Answer &   │
+                                        │ Cited Papers│
+                                        └─────────────┘
 ```
 
 ## Prerequisites
@@ -59,7 +59,7 @@ ollama pull llama3.2:3b           # LLM model (~2GB)
 
 ### 2. Create docker-compose.yml
 
-Create a `docker-compose.yml` file:
+Copy the `docker-compose.yml` file from the repository:
 
 ```yaml
 services:
@@ -202,6 +202,71 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+## Local Development (Without Docker)
+
+For development or if you prefer not to use Docker:
+
+### Prerequisites
+
+- **Python 3.12+**
+- **uv** (Python package manager)
+- **PostgreSQL 16** with pgvector extension
+- **Ollama**
+
+### Setup
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install PostgreSQL with pgvector (macOS)
+brew install postgresql@16
+brew services start postgresql@16
+
+# Install pgvector extension
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make && make install
+cd .. && rm -rf pgvector
+
+# Create database
+createdb arxiv_rag
+
+# Install Ollama and models
+brew install ollama
+ollama serve &
+ollama pull nomic-embed-text
+ollama pull llama3.2:3b
+```
+
+### Run the App
+
+```bash
+# Clone the repository
+git clone https://github.com/jaisngh/arxiv-rag.git
+cd arxiv-rag
+
+# Install dependencies
+uv sync
+
+# Create .env file (optional - defaults work for local PostgreSQL)
+cat > .env << EOF
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=arxiv_rag
+POSTGRES_USER=$(whoami)
+POSTGRES_PASSWORD=
+OLLAMA_HOST=http://localhost:11434
+EOF
+
+# Run the app
+uv run streamlit run app.py
+```
+
+The app will be available at **http://localhost:8501**
+
+---
+
 ## Project Structure
 
 ```
@@ -218,7 +283,3 @@ arxiv-rag/
 ├── docker-compose.yml  # Multi-container orchestration
 └── pyproject.toml      # Python dependencies
 ```
-
-## License
-
-MIT License
