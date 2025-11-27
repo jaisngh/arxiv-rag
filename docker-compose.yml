@@ -1,0 +1,105 @@
+version: '3.8'
+
+# =============================================================================
+# arXiv RAG - Docker Compose
+# =============================================================================
+# Complete stack for running the arXiv RAG application
+# 
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose logs -f app        # View app logs
+#   docker compose down                # Stop all services
+#   docker compose down -v             # Stop and remove volumes (data loss!)
+#
+# Note: Ollama must be running on the host machine or accessible via network.
+#       See README for Ollama setup instructions.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL with pgvector
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: arxiv-rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: arxiv_rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d arxiv_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # arXiv RAG Application (Streamlit)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: https://github.com/jaisngh/arxiv-rag.git#main
+    container_name: arxiv-rag-app
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      # PostgreSQL connection (uses Docker service name)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: arxiv_rag
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+      # Ollama connection (host machine)
+      # On Linux, use host.docker.internal or the host's IP
+      # If Ollama runs in Docker, use its container name instead
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-llama3.2:3b}
+      
+      # Vector configuration
+      EMBEDDING_DIM: 768
+      
+      # RAG configuration
+      TOP_K_RESULTS: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # For Linux hosts without host.docker.internal support, uncomment:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+  # ---------------------------------------------------------------------------
+  # Optional: Ollama (CPU-only, for servers without GPU)
+  # ---------------------------------------------------------------------------
+  # Uncomment this section to run Ollama in Docker (slower without GPU)
+  # For GPU support, install Ollama on the host machine instead
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: arxiv-rag-ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   # For NVIDIA GPU support, uncomment:
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: all
+  #   #           capabilities: [gpu]
+
+volumes:
+  postgres_data:
+    name: arxiv-rag-postgres-data
+  # ollama_data:
+  #   name: arxiv-rag-ollama-data
+

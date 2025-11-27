@@ -1,0 +1,14 @@
+[project]
+name = "arxiv-rag"
+version = "0.1.0"
+description = "RAG application for arXiv papers using PostgreSQL/pgvector and Ollama"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "arxiv>=2.3.1",
+    "ollama>=0.6.1",
+    "pgvector>=0.4.1",
+    "psycopg2-binary>=2.9.11",
+    "python-dotenv>=1.2.1",
+    "streamlit>=1.51.0",
+]
