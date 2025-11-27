@@ -1,6 +1,6 @@
 # 📚 arXiv RAG
 
-A Retrieval-Augmented Generation (RAG) application for searching and querying arXiv research papers using natural language. Built with PostgreSQL + pgvector for vector storage, Ollama for embeddings and LLM inference, and Streamlit for the UI.
+A Retrieval-Augmented Generation (RAG) application for searching and querying arXiv research papers using natural language. Built with PostgreSQL + pgvector for vector storage, Ollama for local LLM inference, and Streamlit for the UI.
 
 ## Features
 
@@ -33,172 +33,35 @@ A Retrieval-Augmented Generation (RAG) application for searching and querying ar
 
 ## Prerequisites
 
-1. **PostgreSQL with pgvector**
-2. **Ollama**
-3. **uv** (Python package manager)
+- **Docker** (with Docker Compose)
+- **Ollama** (for embeddings and LLM)
 
 ## Quick Start
 
-### 1. Install PostgreSQL with pgvector
-
-**macOS (Homebrew):**
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-
-# Install pgvector extension
-git clone https://github.com/pgvector/pgvector.git
-cd pgvector
-make
-make install
-```
-
-**Or using Docker:**
-```bash
-docker run -d \
-  --name postgres-pgvector \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=arxiv_rag \
-  -p 5432:5432 \
-  pgvector/pgvector:pg16
-```
-
-### 2. Install Ollama
+### 1. Install Ollama
 
 **macOS:**
 ```bash
 brew install ollama
-ollama serve  # Start Ollama server (run in background)
 ```
 
-**Pull required models:**
-```bash
-ollama pull nomic-embed-text  # Embedding model
-ollama pull llama3.2:3b       # LLM model (lightweight, runs on most machines)
-```
-
-### 3. Setup the Application
-
-```bash
-# Clone and enter directory
-cd arxiv-rag
-
-# Create environment file
-cp env.example .env
-# Edit .env with your settings if needed
-
-# Install dependencies with uv
-uv sync
-
-# Create the database (if not using Docker)
-createdb arxiv_rag
-```
-
-### 4. Run the Application
-
-```bash
-uv run streamlit run app.py
-```
-
-The app will be available at `http://localhost:8501`
-
-## Configuration
-
-All settings can be configured via environment variables in `.env`:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
-| `POSTGRES_PORT` | `5432` | PostgreSQL port |
-| `POSTGRES_DB` | `arxiv_rag` | Database name |
-| `POSTGRES_USER` | `postgres` | Database user |
-| `POSTGRES_PASSWORD` | `postgres` | Database password |
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama API URL |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model |
-| `OLLAMA_LLM_MODEL` | `llama3.2:3b` | LLM for generation |
-| `EMBEDDING_DIM` | `768` | Embedding dimensions |
-| `TOP_K_RESULTS` | `5` | Default number of results |
-
-## Usage
-
-### Ingest Papers
-
-1. Go to **📥 Ingest Papers**
-2. Enter a search query (e.g., "transformer attention mechanisms") or select a category
-3. Choose the number of papers to fetch
-4. Click **Fetch & Index**
-
-### Query Papers
-
-1. Go to **🔍 Query Papers**
-2. Enter your question in natural language
-3. Adjust the number of sources if needed
-4. Click **Search & Answer**
-
-The system will:
-1. Generate an embedding for your query
-2. Find the most similar papers using cosine similarity
-3. Build a context from retrieved papers
-4. Generate an answer using the local LLM
-
-## Project Structure
-
-```
-arxiv-rag/
-├── app.py              # Streamlit UI
-├── src/
-│   ├── __init__.py
-│   ├── config.py       # Configuration settings
-│   ├── database.py     # PostgreSQL/pgvector operations
-│   ├── arxiv_fetcher.py # arXiv API client
-│   ├── embeddings.py   # Ollama embedding generation
-│   ├── ingest.py       # Paper ingestion pipeline
-│   └── rag.py          # RAG pipeline
-├── Dockerfile          # Container build instructions
-├── docker-compose.yml  # Multi-container orchestration
-├── pyproject.toml      # Project dependencies
-├── env.example         # Environment template
-└── README.md
-```
-
-## Alternative LLM Models
-
-You can use different Ollama models based on your hardware:
-
-| Model | Size | RAM Required | Notes |
-|-------|------|--------------|-------|
-| `llama3.2:1b` | 1.3B | ~2GB | Fastest, less accurate |
-| `llama3.2:3b` | 3B | ~4GB | Good balance (default) |
-| `llama3.1:8b` | 8B | ~8GB | Better quality |
-| `mistral` | 7B | ~8GB | Great for reasoning |
-| `phi3:mini` | 3.8B | ~4GB | Fast and capable |
-
-To change the model:
-```bash
-ollama pull <model-name>
-# Update OLLAMA_LLM_MODEL in .env
-```
-
-## Docker Deployment (Linux Server)
-
-Deploy on any Linux server by pulling directly from the Git repository.
-
-### 1. Install Ollama on the Host
-
+**Linux:**
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
-ollama serve &
-ollama pull nomic-embed-text
-ollama pull llama3.2:3b
+```
+
+**Start Ollama and pull required models:**
+```bash
+ollama serve &                    # Start Ollama (runs in background)
+ollama pull nomic-embed-text      # Embedding model (~274MB)
+ollama pull llama3.2:3b           # LLM model (~2GB)
 ```
 
 ### 2. Create docker-compose.yml
 
-Create a `docker-compose.yml` file on your server:
+Create a `docker-compose.yml` file:
 
 ```yaml
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -246,56 +109,116 @@ volumes:
   postgres_data:
 ```
 
-**Update the repository URL** in the `build.context` line to your actual repo.
-
 ### 3. Start the Application
 
 ```bash
 docker compose up -d
-
-# View logs
-docker compose logs -f app
 ```
 
-The app will be available at `http://your-server-ip:8501`
+This will:
+- Pull and start PostgreSQL 16 with pgvector extension pre-installed
+- Build the app image from the GitHub repository
+- Start the Streamlit application
 
-### 4. Docker Commands
+The app will be available at **http://localhost:8501**
+
+## Usage
+
+### Ingest Papers
+
+1. Go to **📥 Ingest Papers**
+2. Enter a search query (e.g., "transformer attention mechanisms") or select a category
+3. Choose the number of papers to fetch
+4. Click **Fetch & Index**
+
+### Query Papers
+
+1. Go to **🔍 Query Papers**
+2. Enter your question in natural language
+3. Adjust the number of sources if needed
+4. Click **Search & Answer**
+
+## Docker Commands
 
 ```bash
 docker compose up -d              # Start all services
-docker compose up -d --build      # Rebuild and start (after repo updates)
+docker compose up -d --build      # Rebuild after repo updates
 docker compose down               # Stop all services
-docker compose down -v            # Stop and delete data
-docker compose logs -f            # View logs
+docker compose down -v            # Stop and delete all data
+docker compose logs -f app        # View app logs
 docker compose restart app        # Restart just the app
 ```
 
-### Build Directly from Git
+## Configuration
 
-Build the image directly without cloning the repo:
+Environment variables can be customized in docker-compose.yml:
 
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_HOST` | `postgres` | PostgreSQL host (Docker service name) |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_DB` | `arxiv_rag` | Database name |
+| `POSTGRES_USER` | `postgres` | Database user |
+| `POSTGRES_PASSWORD` | `postgres` | Database password |
+| `OLLAMA_HOST` | `http://host.docker.internal:11434` | Ollama API URL |
+| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model |
+| `OLLAMA_LLM_MODEL` | `llama3.2:3b` | LLM for generation |
+| `EMBEDDING_DIM` | `768` | Embedding dimensions |
+| `TOP_K_RESULTS` | `5` | Default number of results |
+
+## Alternative LLM Models
+
+You can use different Ollama models based on your hardware:
+
+| Model | Size | RAM Required | Notes |
+|-------|------|--------------|-------|
+| `llama3.2:1b` | 1.3B | ~2GB | Fastest, less accurate |
+| `llama3.2:3b` | 3B | ~4GB | Good balance (default) |
+| `llama3.1:8b` | 8B | ~8GB | Better quality |
+| `mistral` | 7B | ~8GB | Great for reasoning |
+| `phi3:mini` | 3.8B | ~4GB | Fast and capable |
+
+To use a different model:
 ```bash
-docker build -t arxiv-rag https://github.com/jaisngh/arxiv-rag.git#main
+ollama pull <model-name>
+# Update OLLAMA_LLM_MODEL in docker-compose.yml
 ```
-
----
 
 ## Troubleshooting
 
-### Database connection failed
-- Ensure PostgreSQL is running: `brew services list`
-- Check credentials in `.env`
-- Verify database exists: `psql -l`
-
-### Ollama model not found
+### Ollama connection failed
 - Ensure Ollama is running: `ollama serve`
-- Pull required models: `ollama pull nomic-embed-text`
+- Verify models are pulled: `ollama list`
+- Check Ollama is accessible: `curl http://localhost:11434`
 
-### pgvector extension error
-- Install pgvector: follow instructions at https://github.com/pgvector/pgvector
-- Enable extension: `CREATE EXTENSION vector;`
+### Database errors
+- Restart containers: `docker compose restart`
+- Check logs: `docker compose logs postgres`
+
+### Rebuild after code updates
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+## Project Structure
+
+```
+arxiv-rag/
+├── app.py              # Streamlit UI
+├── src/
+│   ├── config.py       # Configuration settings
+│   ├── database.py     # PostgreSQL/pgvector operations
+│   ├── arxiv_fetcher.py # arXiv API client
+│   ├── embeddings.py   # Ollama embedding generation
+│   ├── ingest.py       # Paper ingestion pipeline
+│   └── rag.py          # RAG pipeline
+├── Dockerfile          # Container build instructions
+├── docker-compose.yml  # Multi-container orchestration
+└── pyproject.toml      # Python dependencies
+```
 
 ## License
 
 MIT License
-
